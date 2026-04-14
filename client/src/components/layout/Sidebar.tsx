@@ -20,7 +20,7 @@ export default function Sidebar() {
         </p>
       </div>
 
-      <nav className="space-y-2">
+      <nav className="space-y-2 sticky top-20">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
