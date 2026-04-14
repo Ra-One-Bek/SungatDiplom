@@ -2,15 +2,26 @@ import { useEffect, useState } from 'react';
 import SectionTitle from '../components/ui/SectionTitle';
 import Card from '../components/ui/Card';
 import { getInjuries, type InjuryItem } from '../services/injuries';
+import { useSelectedClub } from '../context/SelectedClubContext';
+
+const clubTitles: Record<'astana' | 'kairat' | 'kaisar', string> = {
+  astana: 'Астаны',
+  kairat: 'Кайрата',
+  kaisar: 'Кайсара',
+};
 
 export default function Injuries() {
+  const { selectedClubId } = useSelectedClub();
   const [injuries, setInjuries] = useState<InjuryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadInjuries() {
+      if (!selectedClubId) return;
+
       try {
-        const data = await getInjuries();
+        setLoading(true);
+        const data = await getInjuries(selectedClubId);
         setInjuries(data);
       } catch (error) {
         console.error('Failed to load injuries:', error);
@@ -20,7 +31,7 @@ export default function Injuries() {
     }
 
     loadInjuries();
-  }, []);
+  }, [selectedClubId]);
 
   if (loading) {
     return <p className="text-slate-300">Загрузка травм...</p>;
@@ -30,7 +41,11 @@ export default function Injuries() {
     <div className="space-y-6">
       <SectionTitle
         title="Травмы"
-        subtitle="Реальные данные о травмированных игроках Atletico de Madrid"
+        subtitle={
+          selectedClubId
+            ? `Актуальные травмы ${clubTitles[selectedClubId]}`
+            : 'Актуальные травмы клуба'
+        }
       />
 
       {injuries.length === 0 ? (
@@ -41,34 +56,23 @@ export default function Injuries() {
         <div className="grid grid-cols-1 gap-4">
           {injuries.map((injury) => (
             <Card key={injury.id}>
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-white">
-                    {injury.playerName}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Тип: {injury.type}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Причина: {injury.reason}
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-white">
+                  {injury.playerName}
+                </h3>
+                <p className="text-slate-300">Тип: {injury.type}</p>
+                <p className="text-slate-300">Причина: {injury.reason}</p>
+                <p className="text-slate-300">{injury.status}</p>
 
-                <div className="text-right">
-                  <p className="text-sm text-rose-400 font-semibold">
-                    {injury.status}
+                {injury.fixtureDate ? (
+                  <p className="text-slate-400">
+                    {new Date(injury.fixtureDate).toLocaleString()}
                   </p>
-                  {injury.fixtureDate ? (
-                    <p className="mt-1 text-sm text-slate-500">
-                      {new Date(injury.fixtureDate).toLocaleString()}
-                    </p>
-                  ) : null}
-                  {injury.league ? (
-                    <p className="mt-1 text-sm text-slate-500">
-                      {injury.league}
-                    </p>
-                  ) : null}
-                </div>
+                ) : null}
+
+                {injury.league ? (
+                  <p className="text-slate-400">{injury.league}</p>
+                ) : null}
               </div>
             </Card>
           ))}

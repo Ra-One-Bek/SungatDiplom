@@ -6,8 +6,11 @@ import { getPlayers } from '../services/players';
 import { getPlayersForm } from '../services/analytics';
 import type { Player } from '../types/player';
 import type { PlayerFormItem } from '../services/analytics';
+import { useSelectedClub } from '../context/SelectedClubContext';
 
 export default function Players() {
+  const { selectedClubId } = useSelectedClub();
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [forms, setForms] = useState<PlayerFormItem[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
@@ -15,8 +18,11 @@ export default function Players() {
 
   useEffect(() => {
     async function loadPlayersOnly() {
+      if (!selectedClubId) return;
+
       try {
-        const playersData = await getPlayers();
+        setPlayersLoading(true);
+        const playersData = await getPlayers(selectedClubId);
         setPlayers(playersData);
       } catch (error) {
         console.error('Failed to load players:', error);
@@ -26,12 +32,15 @@ export default function Players() {
     }
 
     loadPlayersOnly();
-  }, []);
+  }, [selectedClubId]);
 
   useEffect(() => {
     async function loadFormsOnly() {
+      if (!selectedClubId) return;
+
       try {
-        const formsData = await getPlayersForm();
+        setFormsLoading(true);
+        const formsData = await getPlayersForm(selectedClubId);
         setForms(formsData);
       } catch (error) {
         console.error('Failed to load players form:', error);
@@ -41,7 +50,7 @@ export default function Players() {
     }
 
     loadFormsOnly();
-  }, []);
+  }, [selectedClubId]);
 
   const mergedPlayers = useMemo(() => {
     return players.map((player) => {
@@ -62,7 +71,7 @@ export default function Players() {
     <div className="space-y-6">
       <SectionTitle
         title="Игроки"
-        subtitle="Список футболистов Atletico de Madrid"
+        subtitle={`Список футболистов ${selectedClubId ?? ''}`}
       />
 
       {formsLoading ? (

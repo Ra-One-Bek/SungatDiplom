@@ -7,24 +7,32 @@ import { getClub } from '../services/club';
 import { getPlayers } from '../services/players';
 import type { Club } from '../types/club';
 import type { Player } from '../types/player';
+import { useSelectedClub } from '../context/SelectedClubContext';
 
 export default function Home() {
+  const { selectedClubId } = useSelectedClub();
   const [club, setClub] = useState<Club | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
     async function loadData() {
-      const [clubData, playersData] = await Promise.all([
-        getClub(),
-        getPlayers(),
-      ]);
+      if (!selectedClubId) return;
 
-      setClub(clubData);
-      setPlayers(playersData.slice(0, 3));
+      try {
+        const [clubData, playersData] = await Promise.all([
+          getClub(selectedClubId),
+          getPlayers(selectedClubId),
+        ]);
+
+        setClub(clubData);
+        setPlayers(playersData.slice(0, 3));
+      } catch (error) {
+        console.error('Failed to load home data:', error);
+      }
     }
 
     loadData();
-  }, []);
+  }, [selectedClubId]);
 
   if (!club) {
     return <p className="text-slate-300">Загрузка...</p>;
@@ -34,7 +42,7 @@ export default function Home() {
     <div className="space-y-8">
       <SectionTitle
         title="Главная панель"
-        subtitle="Обзор клуба Atletico de Madrid и текущей формы игроков"
+        subtitle={`Обзор клуба ${club.info.name} и текущей формы игроков`}
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

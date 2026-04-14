@@ -1,40 +1,43 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ExternalFootballService } from '../external-football/external-football.service';
+import { KPL_CLUBS } from '../data/kpl-clubs';
+
+type ClubId = 'astana' | 'kairat' | 'kaisar';
 
 @Injectable()
 export class InjuriesService {
-  private readonly teamId: number;
-  private readonly season: number;
-  private readonly leagueId: number;
-
   constructor(
     private readonly externalFootballService: ExternalFootballService,
-    private readonly configService: ConfigService,
-  ) {
-    this.teamId = Number(this.configService.get('ATLETICO_TEAM_ID'));
-    this.season = Number(this.configService.get('CURRENT_SEASON'));
-    this.leagueId = Number(this.configService.get('LA_LIGA_ID'));
-  }
+  ) {}
 
-  async findAll() {
+  async findAll(clubId: ClubId = 'astana') {
+    const club = KPL_CLUBS.find((c) => c.id === clubId);
+
+    if (!club) return [];
+
     const injuries = await this.externalFootballService.getInjuries(
-      this.teamId,
-      this.season,
-      this.leagueId,
+      club.teamId,
+      club.season,
+      club.leagueId,
     );
 
-    return injuries.map((item: any) => ({
-      id: item.player?.id ?? item.fixture?.id ?? Math.random(),
-      playerId: item.player?.id ?? null,
-      playerName: item.player?.name ?? 'Unknown Player',
-      type: item.player?.type ?? item.injury?.type ?? 'Unknown',
-      reason: item.player?.reason ?? item.injury?.reason ?? 'Unknown',
-      fixtureId: item.fixture?.id ?? null,
-      fixtureDate: item.fixture?.date ?? null,
-      league: item.league?.name ?? null,
-      team: item.team?.name ?? null,
-      status: 'injured',
-    }));
+    return injuries.map((item: any) => this.mapInjury(item));
+  }
+
+  private mapInjury(item: any) {
+    const player = item.player ?? {};
+    const injury = item.injury ?? {};
+    const fixture = item.fixture ?? {};
+    const league = item.league ?? {};
+
+    return {
+      id: player.id,
+      playerName: player.name,
+      type: injury.type,
+      reason: injury.reason,
+      status: injury.status,
+      fixtureDate: fixture.date,
+      league: league.name,
+    };
   }
 }

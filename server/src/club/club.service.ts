@@ -1,31 +1,38 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ExternalFootballService } from '../external-football/external-football.service';
+import { KPL_CLUBS, SupportedClub } from '../data/kpl-clubs';
 
 @Injectable()
 export class ClubService {
-  private readonly teamId: number;
-  private readonly season: number;
-  private readonly leagueId: number;
-
   constructor(
     private readonly externalFootballService: ExternalFootballService,
-    private readonly configService: ConfigService,
-  ) {
-    this.teamId = Number(this.configService.get('ATLETICO_TEAM_ID'));
-    this.season = Number(this.configService.get('CURRENT_SEASON'));
-    this.leagueId = Number(this.configService.get('LA_LIGA_ID'));
+  ) {}
+
+  findAllSupportedClubs(): SupportedClub[] {
+    return KPL_CLUBS;
   }
 
-  async findClub() {
+  findSupportedClubById(clubId: string): SupportedClub {
+    const club = KPL_CLUBS.find((item) => item.id === clubId);
+
+    if (!club) {
+      throw new NotFoundException(`Club with id "${clubId}" not found`);
+    }
+
+    return club;
+  }
+
+  async findClub(clubId = 'astana') {
+    const club = this.findSupportedClubById(clubId);
+
     const [teams, fixtures, standings] = await Promise.all([
-      this.externalFootballService.getTeams(this.teamId),
+      this.externalFootballService.getTeams(club.teamId),
       this.externalFootballService.getFixturesByTeam(
-        this.teamId,
-        this.season,
-        this.leagueId,
+        club.teamId,
+        club.season,
+        club.leagueId,
       ),
-      this.externalFootballService.getStandings(this.leagueId, this.season),
+      this.externalFootballService.getStandings(club.leagueId, club.season),
     ]);
 
     const teamData = teams[0];
@@ -38,27 +45,17 @@ export class ClubService {
 
     const wins = finishedFixtures.filter((fixture: any) => {
       const goalsFor =
-        fixture.teams.home.id === this.teamId
-          ? fixture.goals.home
-          : fixture.goals.away;
+        fixture.teams.home.id === club.teamId ? fixture.goals.home : fixture.goals.away;
       const goalsAgainst =
-        fixture.teams.home.id === this.teamId
-          ? fixture.goals.away
-          : fixture.goals.home;
-
+        fixture.teams.home.id === club.teamId ? fixture.goals.away : fixture.goals.home;
       return goalsFor > goalsAgainst;
     }).length;
 
     const draws = finishedFixtures.filter((fixture: any) => {
       const goalsFor =
-        fixture.teams.home.id === this.teamId
-          ? fixture.goals.home
-          : fixture.goals.away;
+        fixture.teams.home.id === club.teamId ? fixture.goals.home : fixture.goals.away;
       const goalsAgainst =
-        fixture.teams.home.id === this.teamId
-          ? fixture.goals.away
-          : fixture.goals.home;
-
+        fixture.teams.home.id === club.teamId ? fixture.goals.away : fixture.goals.home;
       return goalsFor === goalsAgainst;
     }).length;
 
@@ -67,7 +64,7 @@ export class ClubService {
     const goalsScored = finishedFixtures.reduce((sum: number, fixture: any) => {
       return (
         sum +
-        (fixture.teams.home.id === this.teamId
+        (fixture.teams.home.id === club.teamId
           ? fixture.goals.home || 0
           : fixture.goals.away || 0)
       );
@@ -76,7 +73,7 @@ export class ClubService {
     const goalsConceded = finishedFixtures.reduce((sum: number, fixture: any) => {
       return (
         sum +
-        (fixture.teams.home.id === this.teamId
+        (fixture.teams.home.id === club.teamId
           ? fixture.goals.away || 0
           : fixture.goals.home || 0)
       );
@@ -84,10 +81,9 @@ export class ClubService {
 
     const cleanSheets = finishedFixtures.filter((fixture: any) => {
       const conceded =
-        fixture.teams.home.id === this.teamId
+        fixture.teams.home.id === club.teamId
           ? fixture.goals.away || 0
           : fixture.goals.home || 0;
-
       return conceded === 0;
     }).length;
 
@@ -95,9 +91,8 @@ export class ClubService {
       .slice(-5)
       .reverse()
       .map((fixture: any) => {
-        const isHome = fixture.teams.home.id === this.teamId;
+        const isHome = fixture.teams.home.id === club.teamId;
         const opponent = isHome ? fixture.teams.away.name : fixture.teams.home.name;
-
         const goalsFor = isHome ? fixture.goals.home : fixture.goals.away;
         const goalsAgainst = isHome ? fixture.goals.away : fixture.goals.home;
 
@@ -116,18 +111,27 @@ export class ClubService {
       });
 
     const standingsBlock = standings?.[0]?.league?.standings?.[0] ?? [];
-    const atleticoStanding = standingsBlock.find(
-      (item: any) => item.team?.id === this.teamId,
+    const clubStanding = standingsBlock.find(
+      (item: any) => item.team?.id === club.teamId,
     );
 
     return {
+      selectedClub: {
+        id: club.id,
+        name: club.name,
+        shortName: club.shortName,
+        league: club.league,
+        season: club.season,
+        teamId: club.teamId,
+        leagueId: club.leagueId,
+      },
       info: {
-        name: team?.name ?? 'Atletico de Madrid',
-        country: team?.country ?? 'Spain',
-        stadium: venue?.name ?? 'Unknown Stadium',
+        name: team?.name ?? club.name,
+        country: team?.country ?? club.country,
+        stadium: venue?.name ?? club.stadium ?? 'Unknown Stadium',
         coach: 'Unknown',
-        founded: team?.founded ?? 1903,
-        logo: team?.logo ?? '',
+        founded: team?.founded ?? club.founded ?? null,
+        logo: team?.logo ?? club.logo ?? '',
       },
       stats: {
         matchesPlayed: finishedFixtures.length,
@@ -138,11 +142,19 @@ export class ClubService {
         goalsConceded,
         cleanSheets,
         averagePossession: 0,
-        rank: atleticoStanding?.rank ?? null,
-        points: atleticoStanding?.points ?? null,
+        rank: clubStanding?.rank ?? null,
+        points: clubStanding?.points ?? null,
       },
       recentMatches,
       topScorers: [],
     };
+  }
+
+  async debugSearchTeams(name: string) {
+    return this.externalFootballService.searchTeams(name);
+  }
+
+  async debugSearchLeagues(name: string) {
+    return this.externalFootballService.searchLeagues(name);
   }
 }

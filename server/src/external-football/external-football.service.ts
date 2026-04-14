@@ -87,4 +87,21 @@ export class ExternalFootballService {
 
     return response.data?.response ?? [];
   }
+
+  async searchTeams(name: string) {
+    const response = await this.api.get('/teams', {
+      params: { search: name },
+    });
+
+    return response.data?.response ?? [];
+  }
+
+  async searchLeagues(name: string) {
+    const response = await this.api.get('/leagues', {
+      params: { search: name },
+    });
+
+    return response.data?.response ?? [];
+  }
+  
 }

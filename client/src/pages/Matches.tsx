@@ -2,15 +2,26 @@ import { useEffect, useState } from 'react';
 import SectionTitle from '../components/ui/SectionTitle';
 import Card from '../components/ui/Card';
 import { getMatches, type MatchItem } from '../services/matches';
+import { useSelectedClub } from '../context/SelectedClubContext';
+
+const clubTitles: Record<'astana' | 'kairat' | 'kaisar', string> = {
+  astana: 'Астаны',
+  kairat: 'Кайрата',
+  kaisar: 'Кайсара',
+};
 
 export default function Matches() {
+  const { selectedClubId } = useSelectedClub();
   const [matches, setMatches] = useState<MatchItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadMatches() {
+      if (!selectedClubId) return;
+
       try {
-        const data = await getMatches();
+        setLoading(true);
+        const data = await getMatches(selectedClubId);
         setMatches(data);
       } catch (error) {
         console.error('Failed to load matches:', error);
@@ -20,7 +31,7 @@ export default function Matches() {
     }
 
     loadMatches();
-  }, []);
+  }, [selectedClubId]);
 
   if (loading) {
     return <p className="text-slate-300">Загрузка матчей...</p>;
@@ -30,37 +41,32 @@ export default function Matches() {
     <div className="space-y-6">
       <SectionTitle
         title="Матчи"
-        subtitle="Реальные матчи Atletico de Madrid из API"
+        subtitle={
+          selectedClubId
+            ? `Расписание и результаты ${clubTitles[selectedClubId]}`
+            : 'Расписание и результаты клуба'
+        }
       />
 
       <div className="grid grid-cols-1 gap-4">
         {matches.map((match) => (
           <Card key={match.id}>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  vs {match.opponent}
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  {match.competition}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {new Date(match.date).toLocaleString()}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {match.home ? 'Домашний матч' : 'Выездной матч'}
-                </p>
-              </div>
-
-              <div className="text-right">
-                <p className="text-2xl font-bold text-white">
-                  {match.score.home ?? '-'} : {match.score.away ?? '-'}
-                </p>
-                <p className="mt-1 text-sm text-slate-400">{match.status}</p>
-                {match.venue ? (
-                  <p className="mt-1 text-sm text-slate-500">{match.venue}</p>
-                ) : null}
-              </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-white">
+                vs {match.opponent}
+              </h3>
+              <p className="text-slate-400">{match.competition}</p>
+              <p className="text-slate-300">
+                {new Date(match.date).toLocaleString()}
+              </p>
+              <p className="text-slate-300">
+                {match.home ? 'Домашний матч' : 'Выездной матч'}
+              </p>
+              <p className="text-white font-medium">
+                {match.score.home ?? '-'} : {match.score.away ?? '-'}
+              </p>
+              <p className="text-slate-300">{match.status}</p>
+              {match.venue ? <p className="text-slate-400">{match.venue}</p> : null}
             </div>
           </Card>
         ))}

@@ -1,44 +1,26 @@
-import type { SquadData } from '../types/squad';
-import { apiGet, apiPatch } from './api';
+import { apiGet } from './api';
 
-export async function getSquad(): Promise<SquadData> {
-  return apiGet<SquadData>('/squad');
+export type ClubId = 'astana' | 'kairat' | 'kaisar';
+
+export type Formation = '4-3-3' | '4-4-2';
+
+export interface SquadSlot {
+  id: number;
+  position: string;
+  playerId: number | null;
 }
 
-export async function updateFormation(formation: string): Promise<SquadData> {
-  return apiPatch<SquadData, { formation: string }>('/squad/formation', {
-    formation,
-  });
+export interface Squad {
+  formation: Formation;
+  lineup: SquadSlot[];
+  bench: number[];
+  setPieces: {
+    penalty: number | null;
+    freeKick: number | null;
+    corner: number | null;
+  };
 }
 
-export async function swapLineupPlayers(
-  firstSlotId: number,
-  secondSlotId: number,
-): Promise<SquadData> {
-  return apiPatch<SquadData, { firstSlotId: number; secondSlotId: number }>(
-    '/squad/swap-lineup',
-    {
-      firstSlotId,
-      secondSlotId,
-    },
-  );
-}
-
-export async function replacePlayer(
-  lineupSlotId: number,
-  sourceType: 'bench' | 'reserves',
-  sourceItemId: number,
-): Promise<SquadData> {
-  return apiPatch<
-    SquadData,
-    {
-      lineupSlotId: number;
-      sourceType: 'bench' | 'reserves';
-      sourceItemId: number;
-    }
-  >('/squad/replace', {
-    lineupSlotId,
-    sourceType,
-    sourceItemId,
-  });
+export async function getSquad(clubId: ClubId): Promise<Squad> {
+  return apiGet(`/squad?clubId=${clubId}`);
 }

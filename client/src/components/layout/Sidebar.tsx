@@ -6,6 +6,7 @@ const navItems = [
   { label: 'Матчи', path: '/matches' },
   { label: 'Травмы', path: '/injuries' },
   { label: 'Статистика клуба', path: '/club-stats' },
+  { label: 'О клубе', path: '/about' },
   { label: 'Менеджер состава', path: '/squad-manager' },
   { label: 'Тренировки AI', path: '/training-recommendations' },
 ];

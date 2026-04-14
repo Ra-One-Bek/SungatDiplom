@@ -7,10 +7,13 @@ import PlayerStatRow from '../components/player/PlayerStatRow';
 import { getPlayerById } from '../services/players';
 import { getPlayerFormById, type PlayerFormItem } from '../services/analytics';
 import type { Player } from '../types/player';
-import { formatRating, getFormLabel, getInjuryLabel } from '../utils/helpers';
+import { formatRating, getFormLabel } from '../utils/helpers';
+import { useSelectedClub } from '../context/SelectedClubContext';
 
 export default function PlayerDetails() {
   const { id } = useParams();
+  const { selectedClubId } = useSelectedClub();
+
   const [player, setPlayer] = useState<Player | null>(null);
   const [playerForm, setPlayerForm] = useState<PlayerFormItem | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -18,15 +21,16 @@ export default function PlayerDetails() {
   useEffect(() => {
     async function loadPlayer() {
       try {
-        if (!id) return;
+        if (!id || !selectedClubId) return;
 
         const [playerData, formData] = await Promise.all([
-          getPlayerById(Number(id)),
-          getPlayerFormById(Number(id)),
+          getPlayerById(Number(id), selectedClubId),
+          getPlayerFormById(Number(id), selectedClubId),
         ]);
 
         setPlayer(playerData);
         setPlayerForm(formData);
+        setNotFound(false);
       } catch (error) {
         console.error('Failed to load player:', error);
         setNotFound(true);
@@ -34,17 +38,10 @@ export default function PlayerDetails() {
     }
 
     loadPlayer();
-  }, [id]);
+  }, [id, selectedClubId]);
 
   if (notFound) {
-    return (
-      <div className="space-y-4">
-        <SectionTitle title="Игрок не найден" />
-        <Card>
-          <p className="text-slate-300">Такого игрока нет в данных.</p>
-        </Card>
-      </div>
-    );
+    return <p className="text-slate-300">Такого игрока нет в данных.</p>;
   }
 
   if (!player) {
@@ -55,83 +52,87 @@ export default function PlayerDetails() {
     <div className="space-y-8">
       <SectionTitle
         title={player.name}
-        subtitle="Подробная статистика и аналитическая оценка формы"
+        subtitle={`#${player.number} · ${player.position}`}
       />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-1">
-          <div className="flex flex-col items-center text-center">
-            <img
-              src={player.image}
-              alt={player.name}
-              className="h-32 w-32 rounded-3xl object-cover"
-            />
-            <h3 className="mt-4 text-2xl font-bold text-white">{player.name}</h3>
-            <p className="mt-1 text-slate-400">
-              #{player.number} · {player.position}
-            </p>
+      <Card>
+        <div className="flex flex-col gap-6 md:flex-row">
+          <img
+            src={player.image}
+            alt={player.name}
+            className="h-48 w-48 rounded-3xl object-cover"
+          />
 
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
               <Badge text={player.nationality} />
-              <Badge
-                text={
-                  playerForm
-                    ? `Форма ${playerForm.formScore}`
-                    : getFormLabel(player.form)
-                }
-                variant="success"
-              />
-              <Badge text={getInjuryLabel(player.injuryStatus)} variant="warning" />
+              <Badge text={player.position} />
+              {playerForm ? (
+                <Badge text={getFormLabel(playerForm.formScore)} />
+              ) : null}
+              <Badge text={playerForm?.availability ?? 'Статус неизвестен'} />
             </div>
 
-            <div className="mt-6 w-full">
-              <PlayerStatRow label="Возраст" value={player.age} />
-              <PlayerStatRow
-                label="Форма"
-                value={playerForm ? playerForm.formScore : player.form}
-              />
-              <PlayerStatRow
-                label="Доступность"
-                value={playerForm ? playerForm.availability : 'unknown'}
-              />
-              <PlayerStatRow
-                label="Средний рейтинг"
-                value={formatRating(player.stats.rating)}
-              />
+            <div className="space-y-2 text-slate-300">
+              <p>Возраст: {player.age}</p>
+              <p>Номер: {player.number}</p>
+              <p>Текущая форма: {formatRating(player.form)}</p>
             </div>
           </div>
-        </Card>
+        </div>
+      </Card>
 
-        <Card className="xl:col-span-1">
-          <h3 className="mb-4 text-xl font-bold text-white">Сезонная статистика</h3>
-          <PlayerStatRow label="Матчи" value={player.stats.appearances} />
-          <PlayerStatRow label="Минуты" value={player.stats.minutes} />
+      <Card>
+        <SectionTitle
+          title="Сезонная статистика"
+          subtitle="Основные показатели игрока"
+        />
+
+        <div className="space-y-2">
           <PlayerStatRow label="Голы" value={player.stats.goals} />
           <PlayerStatRow label="Ассисты" value={player.stats.assists} />
-          <PlayerStatRow label="Желтые карточки" value={player.stats.yellowCards} />
+          <PlayerStatRow label="Жёлтые карточки" value={player.stats.yellowCards} />
           <PlayerStatRow label="Красные карточки" value={player.stats.redCards} />
-        </Card>
+          <PlayerStatRow label="Минуты" value={player.stats.minutes} />
+          <PlayerStatRow
+            label="Средний рейтинг"
+            value={formatRating(player.stats.rating)}
+          />
+        </div>
+      </Card>
 
-        <Card className="xl:col-span-1">
-          <h3 className="mb-4 text-xl font-bold text-white">Аналитика</h3>
-          <PlayerStatRow
-            label="Форма по модели"
-            value={playerForm ? playerForm.formScore : '—'}
-          />
-          <PlayerStatRow
-            label="Травма"
-            value={playerForm ? (playerForm.injured ? 'Да' : 'Нет') : '—'}
-          />
-          <div className="mt-4 rounded-2xl bg-slate-950 p-4">
-            <p className="text-sm font-semibold text-slate-300">Рекомендация</p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              {playerForm
-                ? playerForm.recommendation
-                : 'Рекомендация пока недоступна.'}
-            </p>
+      <Card>
+        <SectionTitle title="Аналитика" subtitle="Форма и рекомендации" />
+
+        {playerForm ? (
+          <div className="space-y-2 text-slate-300">
+            <PlayerStatRow label="Form score" value={playerForm.formScore} />
+            <PlayerStatRow label="Доступность" value={playerForm.availability} />
+            <PlayerStatRow label="Минуты" value={playerForm.minutes} />
+            <PlayerStatRow label="Голы" value={playerForm.goals} />
+            <PlayerStatRow label="Ассисты" value={playerForm.assists} />
+            <PlayerStatRow
+              label="Жёлтые карточки"
+              value={playerForm.yellowCards}
+            />
+            <PlayerStatRow
+              label="Красные карточки"
+              value={playerForm.redCards}
+            />
           </div>
-        </Card>
-      </div>
+        ) : (
+          <p className="text-slate-400">Аналитические данные пока недоступны.</p>
+        )}
+
+        <div className="mt-4 rounded-2xl bg-slate-800 p-4">
+          <h4 className="mb-2 font-semibold text-white">Рекомендация</h4>
+          <p className="text-slate-300">
+            {playerForm
+              ? playerForm.recommendation
+              : 'Рекомендация пока недоступна.'}
+          </p>
+        </div>
+      </Card>
     </div>
   );
 }

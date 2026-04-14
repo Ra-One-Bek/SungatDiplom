@@ -1,5 +1,7 @@
 import { apiGet } from './api';
 
+export type ClubId = 'astana' | 'kairat' | 'kaisar';
+
 export interface PlayerFormItem {
   playerId: number;
   name: string;
@@ -19,10 +21,13 @@ export interface PlayerFormItem {
   recommendation: string;
 }
 
-export async function getPlayersForm(): Promise<PlayerFormItem[]> {
-  return apiGet<PlayerFormItem[]>('/analytics/players-form');
+export async function getPlayersForm(clubId: ClubId): Promise<PlayerFormItem[]> {
+  return apiGet<PlayerFormItem[]>(`/analytics/players-form?clubId=${clubId}`);
 }
 
-export async function getPlayerFormById(id: number): Promise<PlayerFormItem> {
-  return apiGet<PlayerFormItem>(`/analytics/players-form/${id}`);
+export async function getPlayerFormById(
+  id: number,
+  clubId: ClubId,
+): Promise<PlayerFormItem> {
+  return apiGet<PlayerFormItem>(`/analytics/players-form/${id}?clubId=${clubId}`);
 }

@@ -1,19 +1,21 @@
 import { apiGet } from './api';
 
+export type ClubId = 'astana' | 'kairat' | 'kaisar';
+
 export interface MatchItem {
   id: number;
-  date: string;
   opponent: string;
   competition: string;
+  date: string;
   home: boolean;
-  status: string;
   score: {
     home: number | null;
     away: number | null;
   };
-  venue: string | null;
+  status: string;
+  venue?: string;
 }
 
-export async function getMatches(): Promise<MatchItem[]> {
-  return apiGet<MatchItem[]>('/matches');
+export async function getMatches(clubId: ClubId): Promise<MatchItem[]> {
+  return apiGet(`/matches?clubId=${clubId}`);
 }

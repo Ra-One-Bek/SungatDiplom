@@ -2,213 +2,104 @@ import { useEffect, useMemo, useState } from 'react';
 import SectionTitle from '../components/ui/SectionTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { useSelectedClub } from '../context/SelectedClubContext';
 import FootballField from '../components/squad/FootballField';
 import FormationSelector from '../components/squad/FormationSelector';
 import BenchList from '../components/squad/BenchList';
 import RecommendationBox from '../components/squad/RecommendationBox';
 import AiSummaryCard from '../components/squad/AiSummaryCard';
-import RoleAlertsCard from '../components/squad/RoleAlertsCard';
-import BenchOptionsCard from '../components/squad/BenchOptionsCard';
-import { getPlayers } from '../services/players';
-import {
-  getSquad,
-  replacePlayer,
-  swapLineupPlayers,
-  updateFormation,
-} from '../services/squad';
-import {
-  getBenchOptions,
-  getRoleAlerts,
-  getSquadRecommendations,
-  type BenchOptionsResponse,
-  type RoleAlertItem,
-  type SquadRecommendationsResponse,
-} from '../services/ai';
-import type { Player } from '../types/player';
-import type { SquadData } from '../types/squad';
-import {
-  getCompatibilityLevel,
-  getCompatibilityMessage,
-  getPositionCompatibility,
-} from '../utils/formation';
 
-type SelectedSource =
-  | { type: 'lineup'; slotId: number }
-  | { type: 'bench'; itemId: number }
-  | { type: 'reserves'; itemId: number }
-  | null;
+import { getPlayers } from '../services/players';
+import { getSquad } from '../services/squad';
+import { getSquadRecommendations } from '../services/ai';
+
+import type { Player } from '../types/player';
 
 export default function SquadManager() {
+  const { selectedClubId } = useSelectedClub();
+
   const [players, setPlayers] = useState<Player[]>([]);
-  const [squad, setSquad] = useState<SquadData | null>(null);
+  const [squad, setSquad] = useState<any>(null);
   const [formation, setFormation] = useState('4-3-3');
-  const [loading, setLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState<any>(null);
 
-  const [aiSummary, setAiSummary] = useState<SquadRecommendationsResponse | null>(null);
-  const [roleAlerts, setRoleAlerts] = useState<RoleAlertItem[]>([]);
-  const [benchOptions, setBenchOptions] = useState<BenchOptionsResponse | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
-  const [selectedLineupSlotId, setSelectedLineupSlotId] = useState<number | null>(null);
-  const [selectedSource, setSelectedSource] = useState<SelectedSource>(null);
-
-  async function loadAiData(slotId?: number) {
-    try {
-      const [summaryData, alertsData] = await Promise.all([
-        getSquadRecommendations(),
-        getRoleAlerts(),
-      ]);
-
-      setAiSummary(summaryData);
-      setRoleAlerts(alertsData);
-
-      if (slotId) {
-        const optionsData = await getBenchOptions(slotId);
-        setBenchOptions(optionsData);
-      } else {
-        setBenchOptions(null);
-      }
-    } catch (error) {
-      console.error('Failed to load AI data:', error);
-    }
-  }
-
+  // загрузка данных
   useEffect(() => {
     async function loadData() {
-      try {
-        const [playersData, squadData] = await Promise.all([
-          getPlayers(),
-          getSquad(),
-        ]);
+      if (!selectedClubId) return;
 
-        setPlayers(playersData);
-        setSquad(squadData);
-        setFormation(squadData.formation);
+      const [playersData, squadData, aiData] = await Promise.all([
+        getPlayers(selectedClubId),
+        getSquad(selectedClubId),
+        getSquadRecommendations(),
+      ]);
 
-        await loadAiData();
-      } catch (error) {
-        console.error('Failed to load squad data:', error);
-      }
+      setPlayers(playersData);
+      setSquad(squadData);
+      setFormation(squadData.formation);
+      setAiSummary(aiData);
     }
 
     loadData();
-  }, []);
+  }, [selectedClubId]);
 
-  useEffect(() => {
-    if (!selectedLineupSlotId) {
-      setBenchOptions(null);
-      return;
-    }
+  // 🔥 авто состав
+  function buildAutoLineup() {
+    if (!squad) return;
 
-    loadAiData(selectedLineupSlotId);
-  }, [selectedLineupSlotId]);
+    const best = [...players].sort((a, b) => b.form - a.form).slice(0, 11);
 
-  const selectedLineupSlot = useMemo(() => {
-    if (!squad || !selectedLineupSlotId) return null;
-    return squad.lineup.find((slot) => slot.id === selectedLineupSlotId) || null;
-  }, [squad, selectedLineupSlotId]);
+    const newLineup = squad.lineup.map((slot: any, index: number) => ({
+      ...slot,
+      playerId: best[index]?.id || null,
+    }));
 
-  const selectedBenchItem = useMemo(() => {
-    if (!squad || !selectedSource || selectedSource.type !== 'bench') return null;
-    return squad.bench.find((item) => item.id === selectedSource.itemId) || null;
-  }, [squad, selectedSource]);
+    setSquad({ ...squad, lineup: newLineup });
+  }
 
-  const selectedReserveItem = useMemo(() => {
-    if (!squad || !selectedSource || selectedSource.type !== 'reserves') return null;
-    return squad.reserves.find((item) => item.id === selectedSource.itemId) || null;
-  }, [squad, selectedSource]);
+  // 🔥 выбрать игрока в слот
+  function assignPlayerToSlot() {
+    if (!squad || !selectedSlotId || !selectedPlayerId) return;
 
-  const selectedSourceSlot = useMemo(() => {
-    if (!squad || !selectedSource || selectedSource.type !== 'lineup') return null;
-    return squad.lineup.find((slot) => slot.id === selectedSource.slotId) || null;
-  }, [squad, selectedSource]);
-
-  const selectedIncomingPlayer = useMemo(() => {
-    if (selectedSource?.type === 'lineup' && selectedSourceSlot) {
-      return players.find((player) => player.id === selectedSourceSlot.playerId) || null;
-    }
-
-    if (selectedSource?.type === 'bench' && selectedBenchItem?.playerId) {
-      return players.find((player) => player.id === selectedBenchItem.playerId) || null;
-    }
-
-    if (selectedSource?.type === 'reserves' && selectedReserveItem?.playerId) {
-      return players.find((player) => player.id === selectedReserveItem.playerId) || null;
-    }
-
-    return null;
-  }, [
-    players,
-    selectedSource,
-    selectedSourceSlot,
-    selectedBenchItem,
-    selectedReserveItem,
-  ]);
-
-  const compatibilityInfo = useMemo(() => {
-    if (!selectedLineupSlot || !selectedIncomingPlayer) return null;
-
-    const score = getPositionCompatibility(
-      selectedIncomingPlayer,
-      selectedLineupSlot.role,
+    const newLineup = squad.lineup.map((slot: any) =>
+      slot.id === selectedSlotId
+        ? { ...slot, playerId: selectedPlayerId }
+        : slot,
     );
 
-    return {
-      score,
-      level: getCompatibilityLevel(score),
-      message: getCompatibilityMessage(
-        selectedIncomingPlayer,
-        selectedLineupSlot.role,
-        score,
-      ),
-    };
-  }, [selectedLineupSlot, selectedIncomingPlayer]);
-
-  async function handleFormationChange(newFormation: string) {
-    try {
-      setLoading(true);
-      const updatedSquad = await updateFormation(newFormation);
-      setSquad(updatedSquad);
-      setFormation(updatedSquad.formation);
-      setSelectedLineupSlotId(null);
-      setSelectedSource(null);
-      await loadAiData();
-    } catch (error) {
-      console.error('Failed to update formation:', error);
-    } finally {
-      setLoading(false);
-    }
+    setSquad({ ...squad, lineup: newLineup });
   }
 
-  async function handleApplyChange() {
-    if (!squad || !selectedLineupSlot || !selectedSource) return;
+  // 🔥 фильтр по позиции
+  const filteredPlayers = useMemo(() => {
+    if (!selectedSlotId || !squad) return players;
 
-    try {
-      setLoading(true);
+    const slot = squad.lineup.find((s: any) => s.id === selectedSlotId);
+    if (!slot) return players;
 
-      if (selectedSource.type === 'lineup') {
-        const updatedSquad = await swapLineupPlayers(
-          selectedLineupSlot.id,
-          selectedSource.slotId,
-        );
-        setSquad(updatedSquad);
-      } else {
-        const updatedSquad = await replacePlayer(
-          selectedLineupSlot.id,
-          selectedSource.type,
-          selectedSource.itemId,
-        );
-        setSquad(updatedSquad);
-      }
+    return players
+      .filter((p) => p.position === slot.role)
+      .sort((a, b) => b.form - a.form);
+  }, [players, selectedSlotId, squad]);
 
-      setSelectedLineupSlotId(null);
-      setSelectedSource(null);
-      await loadAiData();
-    } catch (error) {
-      console.error('Failed to apply squad change:', error);
-    } finally {
-      setLoading(false);
+  // 🔥 анализ состава
+  const tacticalAdvice = useMemo(() => {
+    if (!squad) return '';
+
+    const weak = squad.lineup.filter((slot: any) => {
+      const p = players.find((pl) => pl.id === slot.playerId);
+      return p && p.form < 6.5;
+    });
+
+    if (weak.length >= 3) {
+      return 'Несколько игроков в слабой форме — сделайте ротацию';
     }
-  }
+
+    return 'Состав выглядит сбалансированным';
+  }, [squad, players]);
 
   if (!squad) {
     return <p className="text-slate-300">Загрузка...</p>;
@@ -218,172 +109,80 @@ export default function SquadManager() {
     <div className="space-y-8">
       <SectionTitle
         title="Менеджер состава"
-        subtitle="Смена схемы, перестановка игроков, замены и AI-анализ"
+        subtitle="Управление составом и AI анализ"
       />
 
-      {aiSummary ? (
+      {/* AI SUMMARY */}
+      {aiSummary && (
         <AiSummaryCard
           totalPlayers={aiSummary.summary.totalPlayers}
           weakSpots={aiSummary.summary.weakSpots}
           readyPlayers={aiSummary.summary.readyPlayers}
           generalAdvice={aiSummary.generalAdvice}
         />
-      ) : null}
+      )}
 
+      {/* FORMATION + AUTO */}
       <Card>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-white">Выбор схемы</h3>
-            <p className="mt-1 text-sm text-slate-400">
-              Сейчас выбрана схема: {formation}
-            </p>
-          </div>
+        <div className="flex justify-between items-center">
+          <FormationSelector value={formation} onChange={setFormation} />
 
-          <FormationSelector value={formation} onChange={handleFormationChange} />
-        </div>
-      </Card>
-
-      <Card>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl bg-slate-950 p-4">
-            <p className="text-sm text-slate-400">Выбранный слот основы</p>
-            <p className="mt-2 text-lg font-bold text-white">
-              {selectedLineupSlot ? selectedLineupSlot.name : 'Не выбран'}
-            </p>
-            <p className="mt-1 text-sm text-slate-400">
-              {selectedLineupSlot
-                ? `Роль в схеме: ${selectedLineupSlot.role}`
-                : 'Нажми на игрока на поле'}
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-slate-950 p-4">
-            <p className="text-sm text-slate-400">Выбранный второй игрок</p>
-            <p className="mt-2 text-lg font-bold text-white">
-              {selectedIncomingPlayer ? selectedIncomingPlayer.name : 'Не выбран'}
-            </p>
-            <p className="mt-1 text-sm text-slate-400">
-              {selectedIncomingPlayer
-                ? `Основная позиция: ${selectedIncomingPlayer.position}`
-                : 'Выбери второго игрока'}
-            </p>
-          </div>
-
-          <div
-            className={`rounded-2xl p-4 ${
-              compatibilityInfo?.level === 'good'
-                ? 'bg-emerald-500/10'
-                : compatibilityInfo?.level === 'warning'
-                ? 'bg-amber-500/10'
-                : compatibilityInfo?.level === 'bad'
-                ? 'bg-rose-500/10'
-                : 'bg-slate-950'
-            }`}
-          >
-            <p className="text-sm text-slate-400">Совместимость</p>
-            <p className="mt-2 text-lg font-bold text-white">
-              {compatibilityInfo ? `${compatibilityInfo.score}%` : '—'}
-            </p>
-            <p className="mt-1 text-sm text-slate-300">
-              {compatibilityInfo
-                ? compatibilityInfo.message
-                : 'Сначала выбери слот основы и второго игрока'}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Button
-            onClick={handleApplyChange}
-            disabled={!selectedLineupSlot || !selectedSource || loading}
-          >
-            {loading ? 'Сохранение...' : 'Применить изменение'}
-          </Button>
-
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setSelectedLineupSlotId(null);
-              setSelectedSource(null);
-              setBenchOptions(null);
-            }}
-            disabled={loading}
-          >
-            Сбросить выбор
+          <Button onClick={buildAutoLineup}>
+            AI авто-состав
           </Button>
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
-          <FootballField
-            players={squad.lineup}
-            selectedSlotId={selectedLineupSlotId}
-            onSelectSlot={(slotId) => {
-              if (!selectedLineupSlotId) {
-                setSelectedLineupSlotId(slotId);
-                setSelectedSource(null);
-                return;
-              }
+      {/* ANALYSIS */}
+      <Card>
+        <RecommendationBox
+          title="Анализ состава"
+          message={tacticalAdvice}
+          level="good"
+        />
+      </Card>
 
-              if (selectedLineupSlotId === slotId) {
-                setSelectedLineupSlotId(null);
-                setSelectedSource(null);
-                return;
-              }
+      {/* FIELD */}
+      <FootballField
+        players={squad.lineup}
+        selectedSlotId={selectedSlotId}
+        onSelectSlot={setSelectedSlotId}
+      />
 
-              setSelectedSource({ type: 'lineup', slotId });
-            }}
-          />
+      {/* PLAYERS */}
+      <Card>
+        <h3 className="text-white font-bold mb-3">
+          Выбор игрока
+        </h3>
 
-          <BenchOptionsCard
-            currentPlayerName={benchOptions?.currentPlayer?.name}
-            options={benchOptions?.options ?? []}
-          />
+        <div className="grid grid-cols-2 gap-2">
+          {filteredPlayers.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setSelectedPlayerId(p.id)}
+              className={`p-2 rounded-xl text-left ${
+                selectedPlayerId === p.id
+                  ? 'bg-blue-600'
+                  : 'bg-slate-800'
+              }`}
+            >
+              {p.name} ({p.position}) ⭐ {p.form}
+            </button>
+          ))}
         </div>
 
-        <div className="space-y-6">
-          <RecommendationBox
-            title={
-              compatibilityInfo
-                ? 'Рекомендация по выбранному действию'
-                : squad.recommendation.title
-            }
-            message={
-              compatibilityInfo
-                ? compatibilityInfo.message
-                : squad.recommendation.message
-            }
-            level={
-              compatibilityInfo
-                ? compatibilityInfo.level
-                : squad.recommendation.level
-            }
-          />
+        <Button className="mt-3" onClick={assignPlayerToSlot}>
+          Назначить в состав
+        </Button>
+      </Card>
 
-          <BenchList
-            title="Запасные"
-            players={squad.bench}
-            selectedItemId={
-              selectedSource?.type === 'bench' ? selectedSource.itemId : null
-            }
-            onSelectItem={(itemId) => setSelectedSource({ type: 'bench', itemId })}
-          />
-
-          <BenchList
-            title="Резервные"
-            players={squad.reserves}
-            selectedItemId={
-              selectedSource?.type === 'reserves' ? selectedSource.itemId : null
-            }
-            onSelectItem={(itemId) =>
-              setSelectedSource({ type: 'reserves', itemId })
-            }
-          />
-
-          <RoleAlertsCard alerts={roleAlerts} />
-        </div>
-      </div>
+      {/* BENCH */}
+      <BenchList
+        title="Скамейка"
+        players={players}
+        selectedItemId={null}
+        onSelectItem={() => {}}
+      />
     </div>
   );
 }

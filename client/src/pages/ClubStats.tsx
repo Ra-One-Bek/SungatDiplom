@@ -6,18 +6,26 @@ import MatchResultCard from '../components/club/MatchResultCard';
 import { getClub } from '../services/club';
 import type { Club } from '../types/club';
 import { formatPercentage } from '../utils/helpers';
+import { useSelectedClub } from '../context/SelectedClubContext';
 
 export default function ClubStats() {
+  const { selectedClubId } = useSelectedClub();
   const [club, setClub] = useState<Club | null>(null);
 
   useEffect(() => {
     async function loadClub() {
-      const data = await getClub();
-      setClub(data);
+      if (!selectedClubId) return;
+
+      try {
+        const data = await getClub(selectedClubId);
+        setClub(data);
+      } catch (error) {
+        console.error('Failed to load club stats:', error);
+      }
     }
 
     loadClub();
-  }, []);
+  }, [selectedClubId]);
 
   if (!club) {
     return <p className="text-slate-300">Загрузка...</p>;
@@ -27,7 +35,7 @@ export default function ClubStats() {
     <div className="space-y-8">
       <SectionTitle
         title="Статистика клуба"
-        subtitle="Ключевые показатели Atletico de Madrid"
+        subtitle={`Ключевые показатели ${club.info.name}`}
       />
 
       <Card>
@@ -83,35 +91,35 @@ export default function ClubStats() {
 
       <section>
         <SectionTitle
-            title="Лучшие бомбардиры"
-            subtitle="Игроки с наибольшим количеством голов"
+          title="Лучшие бомбардиры"
+          subtitle="Игроки с наибольшим количеством голов"
         />
         <Card>
-            {club.topScorers.length === 0 ? (
+          {club.topScorers.length === 0 ? (
             <p className="text-slate-400">
-                Данные о бомбардирах пока не загружены.
+              Данные о бомбардирах пока не загружены.
             </p>
-            ) : (
+          ) : (
             <div className="space-y-3">
-                {club.topScorers.map((scorer, index) => (
+              {club.topScorers.map((scorer, index) => (
                 <div
-                    key={scorer.playerId}
-                    className="flex items-center justify-between border-b border-slate-800 py-3 last:border-b-0"
+                  key={scorer.playerId}
+                  className="flex items-center justify-between border-b border-slate-800 py-3 last:border-b-0"
                 >
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white">
-                        {index + 1}
+                      {index + 1}
                     </span>
                     <span className="font-medium text-white">{scorer.name}</span>
-                    </div>
+                  </div>
 
-                    <span className="text-slate-300">{scorer.goals} голов</span>
+                  <span className="text-slate-300">{scorer.goals} голов</span>
                 </div>
-                ))}
+              ))}
             </div>
-            )}
+          )}
         </Card>
-        </section>
+      </section>
     </div>
   );
 }
