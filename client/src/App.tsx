@@ -1,23 +1,38 @@
-import { Routes, Route } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import RequireSelectedClub from './components/routing/RequireSelectedClub';
+
 import Home from './pages/Home';
 import Players from './pages/Players';
 import PlayerDetails from './pages/PlayerDetails';
 import ClubStats from './pages/ClubStats';
 import SquadManager from './pages/SquadManager';
 import Matches from './pages/Matches';
-import NotFound from './pages/NotFound';
 import Injuries from './pages/Injuries';
 import TrainingRecommendations from './pages/TrainingRecommendations';
 import SelectClub from './pages/SelectClub';
 import AboutClub from './pages/AboutClub';
+import ClubIntro from './pages/ClubIntro';
+import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
     <Routes>
+
+      {/* 🔥 ВЫБОР КЛУБА */}
       <Route path="/select-club" element={<SelectClub />} />
 
+      {/* 🔥 INTRO (3D PRELOADER) */}
+      <Route
+        path="/club-intro"
+        element={
+          <RequireSelectedClub>
+            <ClubIntro />
+          </RequireSelectedClub>
+        }
+      />
+
+      {/* 🔥 ОСНОВНОЕ ПРИЛОЖЕНИЕ */}
       <Route
         path="/"
         element={
@@ -57,6 +72,17 @@ export default function App() {
           <RequireSelectedClub>
             <MainLayout>
               <ClubStats />
+            </MainLayout>
+          </RequireSelectedClub>
+        }
+      />
+
+      <Route
+        path="/about"
+        element={
+          <RequireSelectedClub>
+            <MainLayout>
+              <AboutClub />
             </MainLayout>
           </RequireSelectedClub>
         }
@@ -106,17 +132,7 @@ export default function App() {
         }
       />
 
-      <Route
-        path="/about"
-        element={
-          <RequireSelectedClub>
-            <MainLayout>
-              <AboutClub />
-            </MainLayout>
-          </RequireSelectedClub>
-        }
-      />
-
+      {/* ❌ 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

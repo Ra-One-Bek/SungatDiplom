@@ -1,45 +1,58 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { clubThemes } from '../theme/clubThemes';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { clubThemes, type ClubThemeId } from '../theme/clubThemes';
 
-export type SelectedClubId = 'astana' | 'kairat' | 'kaisar';
+export type SelectedClubId = ClubThemeId;
 
 type SelectedClubContextValue = {
   selectedClubId: SelectedClubId | null;
   setSelectedClubId: (clubId: SelectedClubId) => void;
   clearSelectedClubId: () => void;
+  currentTheme: (typeof clubThemes)[ClubThemeId] | null;
 };
 
 const STORAGE_KEY = 'selectedClubId';
 
-const SelectedClubContext = createContext<SelectedClubContextValue | undefined>(
-  undefined,
-);
+const SelectedClubContext = createContext<
+  SelectedClubContextValue | undefined
+>(undefined);
 
 export function SelectedClubProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [selectedClubId, setSelectedClubIdState] = useState<SelectedClubId | null>(
-    null,
-  );
+  const [selectedClubId, setSelectedClubIdState] =
+    useState<SelectedClubId | null>(null);
 
   useEffect(() => {
     const savedClubId = localStorage.getItem(STORAGE_KEY) as SelectedClubId | null;
 
-    if (savedClubId === 'astana' || savedClubId === 'kairat' || savedClubId === 'kaisar') {
+    if (
+      savedClubId === 'astana' ||
+      savedClubId === 'kairat' ||
+      savedClubId === 'kaisar'
+    ) {
       setSelectedClubIdState(savedClubId);
     }
   }, []);
 
   useEffect(() => {
-    if (!selectedClubId) return;
+    const fallback = clubThemes.astana;
+    const theme = selectedClubId ? clubThemes[selectedClubId] : fallback;
 
-    const theme = clubThemes[selectedClubId];
-
-    document.documentElement.style.setProperty('--primary', theme.primary);
-    document.documentElement.style.setProperty('--secondary', theme.secondary);
-    document.documentElement.style.setProperty('--accent', theme.accent);
+    document.documentElement.style.setProperty('--club-primary', theme.primary);
+    document.documentElement.style.setProperty('--club-secondary', theme.secondary);
+    document.documentElement.style.setProperty('--club-accent', theme.accent);
+    document.documentElement.style.setProperty('--club-surface', theme.surface);
+    document.documentElement.style.setProperty('--club-text', theme.text);
+    document.documentElement.style.setProperty('--club-muted', theme.muted);
+    document.documentElement.style.setProperty('--club-gradient', theme.gradient);
   }, [selectedClubId]);
 
   const value = useMemo(
@@ -53,6 +66,7 @@ export function SelectedClubProvider({
         localStorage.removeItem(STORAGE_KEY);
         setSelectedClubIdState(null);
       },
+      currentTheme: selectedClubId ? clubThemes[selectedClubId] : null,
     }),
     [selectedClubId],
   );

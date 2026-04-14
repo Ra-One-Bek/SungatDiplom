@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useSelectedClub } from '../../context/SelectedClubContext';
 
 const navItems = [
   { label: 'Главная', path: '/' },
@@ -11,33 +12,66 @@ const navItems = [
   { label: 'Тренировки AI', path: '/training-recommendations' },
 ];
 
-export default function Sidebar() {
-  return (
-    <aside className="hidden min-h-screen w-64 border-r border-slate-800 bg-slate-950 p-4 md:block">
-      <div className="mb-8 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-        <h2 className="text-lg font-bold text-white">ATM Panel</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Football analytics dashboard
-        </p>
-      </div>
+const clubDescriptions = {
+  astana: 'Голубой + золотой стиль',
+  kairat: 'Жёлто-чёрная энергия',
+  kaisar: 'Красно-белый характер',
+};
 
-      <nav className="space-y-2 sticky top-20">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `block rounded-xl px-4 py-3 text-sm font-medium transition ${
+export default function Sidebar() {
+  const { selectedClubId, currentTheme } = useSelectedClub();
+
+  return (
+    <aside className="hidden w-[310px] shrink-0 border-r border-slate-200 bg-white xl:block">
+      <div className="flex h-full flex-col">
+        <div
+          className="m-4 rounded-[28px] p-6 text-white shadow-xl"
+          style={{ background: 'var(--club-gradient)' }}
+        >
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-lg font-black backdrop-blur">
+              {currentTheme?.shortName ?? 'KPL'}
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/80">
+                Coach Suite
+              </p>
+              <h2 className="text-2xl font-black">
+                {currentTheme?.name ?? 'Kazakhstan Premier League'}
+              </h2>
+            </div>
+          </div>
+
+          <p className="text-sm leading-6 text-white/90">
+            {selectedClubId
+              ? clubDescriptions[selectedClubId]
+              : 'Выберите клуб, чтобы загрузить персонализированную аналитику.'}
+          </p>
+        </div>
+
+        <nav className="flex-1 space-y-2 px-4 pb-6">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `block rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                  isActive
+                    ? 'text-white shadow-md'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`
+              }
+              style={({ isActive }) =>
                 isActive
-                  ? 'bg-red-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-              }`
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+                  ? { background: 'var(--club-gradient)' }
+                  : undefined
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
     </aside>
   );
 }
