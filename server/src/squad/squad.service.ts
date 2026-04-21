@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { squadMock } from '../data/squad.mock';
+import { squadsMock } from '../data/squads.mock';
 
 type ClubId = 'astana' | 'kairat' | 'kaisar';
 
@@ -10,9 +10,9 @@ function deepClone<T>(obj: T): T {
 @Injectable()
 export class SquadService {
   private squadByClub: Record<ClubId, any> = {
-    astana: deepClone(squadMock),
-    kairat: deepClone(squadMock),
-    kaisar: deepClone(squadMock),
+    astana: deepClone(squadsMock.astana),
+    kairat: deepClone(squadsMock.kairat),
+    kaisar: deepClone(squadsMock.kaisar),
   };
 
   getSquad(clubId: ClubId = 'astana') {
@@ -58,18 +58,13 @@ export class SquadService {
   ) {
     const squad = this.squadByClub[clubId];
 
-    const lineupSlot = squad.lineup.find(
-      (slot: any) => slot.id === lineupSlotId,
-    );
-
+    const lineupSlot = squad.lineup.find((slot: any) => slot.id === lineupSlotId);
     if (!lineupSlot) {
       throw new NotFoundException('Lineup slot not found');
     }
 
     const sourceList = sourceType === 'bench' ? squad.bench : squad.reserves;
-    const sourceItemIndex = sourceList.findIndex(
-      (item: any) => item.id === sourceItemId,
-    );
+    const sourceItemIndex = sourceList.findIndex((item: any) => item.id === sourceItemId);
 
     if (sourceItemIndex === -1) {
       throw new NotFoundException(`${sourceType} item not found`);

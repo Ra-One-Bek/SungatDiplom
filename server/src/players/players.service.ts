@@ -97,10 +97,7 @@ export class PlayersService {
   }
 
   private getMockPlayers(clubId: ClubId) {
-    return playersMock.map((player, index) => ({
-      ...player,
-      id: Number(`${clubId === 'astana' ? 1 : clubId === 'kairat' ? 2 : 3}${index + 1}`),
-    }));
+    return playersMock[clubId] || [];
   }
 
   private mapPlayer(item: any) {
