@@ -16,14 +16,17 @@ export interface BenchPlayer {
   position: PlayerPosition;
 }
 
-export interface FormationOption {
-  name: string;
-}
-
 export interface SquadRecommendation {
   title: string;
   message: string;
   level: 'good' | 'warning' | 'bad';
+}
+
+export interface SetPieces {
+  penalty: number | null;
+  freeKick: number | null;
+  corner: number | null;
+  captain: number | null;
 }
 
 export interface SquadData {
@@ -32,11 +35,5 @@ export interface SquadData {
   bench: BenchPlayer[];
   reserves: BenchPlayer[];
   recommendation: SquadRecommendation;
-}
-
-export interface SetPieces {
-  penalty: number | null;
-  freeKick: number | null;
-  corner: number | null;
-  captain: number | null;
+  setPieces?: SetPieces;
 }

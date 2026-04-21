@@ -1,187 +1,95 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { squadMock } from '../data/squad.mock';
 
-type FormationTemplate = {
-  role: string;
-  top: string;
-  left: string;
-};
+type ClubId = 'astana' | 'kairat' | 'kaisar';
+
+function deepClone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
 
 @Injectable()
 export class SquadService {
-  private squad = structuredClone(squadMock);
-
-  private formationTemplates: Record<string, FormationTemplate[]> = {
-    '4-3-3': [
-      { role: 'GK', top: '90%', left: '50%' },
-      { role: 'RB', top: '74%', left: '82%' },
-      { role: 'CB', top: '77%', left: '62%' },
-      { role: 'CB', top: '77%', left: '38%' },
-      { role: 'LB', top: '74%', left: '18%' },
-      { role: 'CM', top: '58%', left: '50%' },
-      { role: 'CM', top: '61%', left: '68%' },
-      { role: 'CM', top: '61%', left: '32%' },
-      { role: 'LW', top: '30%', left: '20%' },
-      { role: 'ST', top: '20%', left: '50%' },
-      { role: 'RW', top: '30%', left: '80%' },
-    ],
-    '4-4-2': [
-      { role: 'GK', top: '90%', left: '50%' },
-      { role: 'RB', top: '74%', left: '82%' },
-      { role: 'CB', top: '77%', left: '62%' },
-      { role: 'CB', top: '77%', left: '38%' },
-      { role: 'LB', top: '74%', left: '18%' },
-      { role: 'RM', top: '54%', left: '82%' },
-      { role: 'CM', top: '58%', left: '60%' },
-      { role: 'CM', top: '58%', left: '40%' },
-      { role: 'LM', top: '54%', left: '18%' },
-      { role: 'ST', top: '24%', left: '40%' },
-      { role: 'ST', top: '24%', left: '60%' },
-    ],
-    '3-5-2': [
-      { role: 'GK', top: '90%', left: '50%' },
-      { role: 'CB', top: '76%', left: '50%' },
-      { role: 'CB', top: '78%', left: '32%' },
-      { role: 'CB', top: '78%', left: '68%' },
-      { role: 'LM', top: '52%', left: '16%' },
-      { role: 'CM', top: '58%', left: '38%' },
-      { role: 'CM', top: '56%', left: '50%' },
-      { role: 'CM', top: '58%', left: '62%' },
-      { role: 'RM', top: '52%', left: '84%' },
-      { role: 'ST', top: '24%', left: '42%' },
-      { role: 'ST', top: '24%', left: '58%' },
-    ],
-    '4-2-3-1': [
-      { role: 'GK', top: '90%', left: '50%' },
-      { role: 'RB', top: '74%', left: '82%' },
-      { role: 'CB', top: '77%', left: '62%' },
-      { role: 'CB', top: '77%', left: '38%' },
-      { role: 'LB', top: '74%', left: '18%' },
-      { role: 'CDM', top: '61%', left: '42%' },
-      { role: 'CDM', top: '61%', left: '58%' },
-      { role: 'LW', top: '36%', left: '20%' },
-      { role: 'CAM', top: '41%', left: '50%' },
-      { role: 'RW', top: '36%', left: '80%' },
-      { role: 'ST', top: '20%', left: '50%' },
-    ],
+  private squadByClub: Record<ClubId, any> = {
+    astana: deepClone(squadMock),
+    kairat: deepClone(squadMock),
+    kaisar: deepClone(squadMock),
   };
 
-  getSquad() {
-    return this.squad;
+  getSquad(clubId: ClubId = 'astana') {
+    return this.squadByClub[clubId];
   }
 
-  updateFormation(formation: string) {
-    const template = this.formationTemplates[formation];
-
-    if (!template) {
-      throw new BadRequestException('Unsupported formation');
-    }
-
-    this.squad.formation = formation;
-    this.squad.lineup = this.squad.lineup.map((slot, index) => ({
-      ...slot,
-      role: template[index].role,
-      top: template[index].top,
-      left: template[index].left,
-    }));
-
-    this.squad.recommendation = {
-      title: 'Схема обновлена',
-      message: `Команда перестроена на схему ${formation}.`,
-      level: 'warning',
-    };
-
-    return this.squad;
+  updateFormation(formation: string, clubId: ClubId = 'astana') {
+    this.squadByClub[clubId].formation = formation;
+    return this.squadByClub[clubId];
   }
 
-  swapLineupPlayers(firstSlotId: number, secondSlotId: number) {
-    const firstSlot = this.squad.lineup.find((slot) => slot.id === firstSlotId);
-    const secondSlot = this.squad.lineup.find((slot) => slot.id === secondSlotId);
+  swapLineupPlayers(
+    firstSlotId: number,
+    secondSlotId: number,
+    clubId: ClubId = 'astana',
+  ) {
+    const squad = this.squadByClub[clubId];
 
-    if (!firstSlot || !secondSlot) {
-      throw new NotFoundException('One or both lineup slots not found');
+    const first = squad.lineup.find((slot: any) => slot.id === firstSlotId);
+    const second = squad.lineup.find((slot: any) => slot.id === secondSlotId);
+
+    if (!first || !second) {
+      throw new NotFoundException('Lineup slot not found');
     }
 
-    this.squad.lineup = this.squad.lineup.map((slot) => {
-      if (slot.id === firstSlotId) {
-        return {
-          ...slot,
-          playerId: secondSlot.playerId,
-          name: secondSlot.name,
-        };
-      }
+    const firstPlayerId = first.playerId;
+    const firstName = first.name;
 
-      if (slot.id === secondSlotId) {
-        return {
-          ...slot,
-          playerId: firstSlot.playerId,
-          name: firstSlot.name,
-        };
-      }
+    first.playerId = second.playerId;
+    first.name = second.name;
 
-      return slot;
-    });
+    second.playerId = firstPlayerId;
+    second.name = firstName;
 
-    this.squad.recommendation = {
-      title: 'Игроки переставлены',
-      message: `${firstSlot.name} и ${secondSlot.name} поменялись местами.`,
-      level: 'warning',
-    };
-
-    return this.squad;
+    return squad;
   }
 
   replacePlayer(
     lineupSlotId: number,
     sourceType: 'bench' | 'reserves',
     sourceItemId: number,
+    clubId: ClubId = 'astana',
   ) {
-    const lineupSlot = this.squad.lineup.find((slot) => slot.id === lineupSlotId);
+    const squad = this.squadByClub[clubId];
+
+    const lineupSlot = squad.lineup.find(
+      (slot: any) => slot.id === lineupSlotId,
+    );
 
     if (!lineupSlot) {
       throw new NotFoundException('Lineup slot not found');
     }
 
-    const sourceList = sourceType === 'bench' ? this.squad.bench : this.squad.reserves;
-    const sourceItem = sourceList.find((item) => item.id === sourceItemId);
+    const sourceList = sourceType === 'bench' ? squad.bench : squad.reserves;
+    const sourceItemIndex = sourceList.findIndex(
+      (item: any) => item.id === sourceItemId,
+    );
 
-    if (!sourceItem) {
-      throw new NotFoundException(`${sourceType} player not found`);
+    if (sourceItemIndex === -1) {
+      throw new NotFoundException(`${sourceType} item not found`);
     }
 
-    const oldStarter = {
+    const sourceItem = sourceList[sourceItemIndex];
+
+    const outgoingPlayer = {
       id: Date.now(),
       playerId: lineupSlot.playerId,
       name: lineupSlot.name,
       position: lineupSlot.role,
     };
 
-    this.squad.lineup = this.squad.lineup.map((slot) => {
-      if (slot.id !== lineupSlotId) return slot;
+    lineupSlot.playerId = sourceItem.playerId;
+    lineupSlot.name = sourceItem.name;
 
-      return {
-        ...slot,
-        playerId: sourceItem.playerId,
-        name: sourceItem.name,
-      };
-    });
+    sourceList.splice(sourceItemIndex, 1);
+    sourceList.push(outgoingPlayer);
 
-    if (sourceType === 'bench') {
-      this.squad.bench = this.squad.bench
-        .filter((item) => item.id !== sourceItemId)
-        .concat(oldStarter);
-    } else {
-      this.squad.reserves = this.squad.reserves
-        .filter((item) => item.id !== sourceItemId)
-        .concat(oldStarter);
-    }
-
-    this.squad.recommendation = {
-      title: 'Замена выполнена',
-      message: `${sourceItem.name} вышел в основу вместо ${lineupSlot.name}.`,
-      level: 'good',
-    };
-
-    return this.squad;
+    return squad;
   }
 }

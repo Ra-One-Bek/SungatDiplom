@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ExternalFootballService } from '../external-football/external-football.service';
 import { KPL_CLUBS } from '../data/kpl-clubs';
+import { playersMock } from '../data/players.mock';
 
 type ClubId = 'astana' | 'kairat' | 'kaisar';
 
@@ -17,7 +18,14 @@ export class PlayersService {
       throw new NotFoundException(`Club with id "${clubId}" not found`);
     }
 
-    const playersResponse = await this.fetchAllPlayersForClub(club.teamId, club.season);
+    const playersResponse = await this.fetchAllPlayersForClub(
+      club.teamId,
+      club.season,
+    );
+
+    if (!playersResponse.length) {
+      return this.getMockPlayers(clubId);
+    }
 
     return playersResponse.map((item: any) => this.mapPlayer(item));
   }
@@ -29,7 +37,24 @@ export class PlayersService {
       throw new NotFoundException(`Club with id "${clubId}" not found`);
     }
 
-    const playersResponse = await this.fetchAllPlayersForClub(club.teamId, club.season);
+    const playersResponse = await this.fetchAllPlayersForClub(
+      club.teamId,
+      club.season,
+    );
+
+    if (!playersResponse.length) {
+      const mockPlayer = this.getMockPlayers(clubId).find(
+        (player) => player.id === playerId,
+      );
+
+      if (!mockPlayer) {
+        throw new NotFoundException(
+          `Player with id "${playerId}" not found for club "${clubId}"`,
+        );
+      }
+
+      return mockPlayer;
+    }
 
     const player = playersResponse.find(
       (item: any) => item.player?.id === playerId,
@@ -48,8 +73,6 @@ export class PlayersService {
     const pages = [1, 2, 3, 4];
     let allPlayers: any[] = [];
 
-    console.log('FETCH PLAYERS =>', { teamId, season });
-
     for (const page of pages) {
       const result = await this.externalFootballService.getPlayersByTeam(
         teamId,
@@ -57,15 +80,11 @@ export class PlayersService {
         page,
       );
 
-      console.log(`PLAYERS RAW RESULT PAGE ${page}:`, JSON.stringify(result, null, 2));
-
       const pageResponse = Array.isArray(result)
         ? result
         : Array.isArray(result?.response)
           ? result.response
           : [];
-
-      console.log(`PLAYERS PAGE ${page} COUNT:`, pageResponse.length);
 
       if (pageResponse.length === 0) {
         break;
@@ -74,9 +93,14 @@ export class PlayersService {
       allPlayers = [...allPlayers, ...pageResponse];
     }
 
-    console.log('TOTAL PLAYERS COUNT:', allPlayers.length);
-
     return allPlayers;
+  }
+
+  private getMockPlayers(clubId: ClubId) {
+    return playersMock.map((player, index) => ({
+      ...player,
+      id: Number(`${clubId === 'astana' ? 1 : clubId === 'kairat' ? 2 : 3}${index + 1}`),
+    }));
   }
 
   private mapPlayer(item: any) {
