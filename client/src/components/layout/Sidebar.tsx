@@ -50,26 +50,29 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex-1 space-y-2 px-4 pb-6">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `block rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+          <div className='sticky top-10 '>
+
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `block rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    isActive
+                      ? 'text-white shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`
+                }
+                style={({ isActive }) =>
                   isActive
-                    ? 'text-white shadow-md'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`
-              }
-              style={({ isActive }) =>
-                isActive
-                  ? { background: 'var(--club-gradient)' }
-                  : undefined
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+                    ? { background: 'var(--club-gradient)' }
+                    : undefined
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
         </nav>
       </div>
     </aside>

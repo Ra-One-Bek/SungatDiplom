@@ -33,3 +33,10 @@ export interface SquadData {
   reserves: BenchPlayer[];
   recommendation: SquadRecommendation;
 }
+
+export interface SetPieces {
+  penalty: number | null;
+  freeKick: number | null;
+  corner: number | null;
+  captain: number | null;
+}

@@ -18,7 +18,9 @@ export interface Squad {
     penalty: number | null;
     freeKick: number | null;
     corner: number | null;
+    captain: number | null;
   };
+  
 }
 
 export async function getSquad(clubId: ClubId): Promise<Squad> {
