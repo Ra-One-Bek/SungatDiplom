@@ -1,21 +1,17 @@
-type Player = {
-  id: number;
-  name: string;
-};
+import type { Player } from '../../types/player';
+import Card from '../ui/Card';
 
 type SetPieceKey = 'penalty' | 'freeKick' | 'corner' | 'captain';
 
-type SetPiecesType = {
-  penalty: number | null;
-  freeKick: number | null;
-  corner: number | null;
-  captain: number | null;
-};
-
 type Props = {
   players: Player[];
-  setPieces: SetPiecesType;
-  onChange: (key: SetPieceKey, playerId: number) => void;
+  setPieces: {
+    penalty: number | null;
+    freeKick: number | null;
+    corner: number | null;
+    captain: number | null;
+  };
+  onChange: (key: SetPieceKey, playerId: number | null) => void;
 };
 
 export default function SetPiecesPanel({
@@ -23,20 +19,28 @@ export default function SetPiecesPanel({
   setPieces,
   onChange,
 }: Props) {
+  const selectablePlayers = players.filter(
+    (player) => player.externalPlayerId !== null,
+  );
+
   function renderSelect(label: string, key: SetPieceKey) {
     return (
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-slate-600">{label}</p>
+        <label className="text-sm font-medium text-slate-200">{label}</label>
 
         <select
           value={setPieces[key] ?? ''}
-          onChange={(e) => onChange(key, Number(e.target.value))}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2"
+          onChange={(e) => {
+            const value = e.target.value;
+            onChange(key, value ? Number(value) : null);
+          }}
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900"
         >
           <option value="">Не выбран</option>
-          {players.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
+
+          {selectablePlayers.map((player) => (
+            <option key={player.id} value={player.externalPlayerId ?? ''}>
+              {player.name}
             </option>
           ))}
         </select>
@@ -45,15 +49,17 @@ export default function SetPiecesPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+    <Card>
       <h3 className="text-lg font-black text-slate-900">
         Стандарты и роли
       </h3>
 
-      {renderSelect('Пенальти', 'penalty')}
-      {renderSelect('Штрафные', 'freeKick')}
-      {renderSelect('Угловые', 'corner')}
-      {renderSelect('Капитан', 'captain')}
-    </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {renderSelect('Пенальти', 'penalty')}
+        {renderSelect('Штрафные', 'freeKick')}
+        {renderSelect('Угловые', 'corner')}
+        {renderSelect('Капитан', 'captain')}
+      </div>
+    </Card>
   );
 }

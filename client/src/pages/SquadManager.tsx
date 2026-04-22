@@ -55,29 +55,38 @@ export default function SquadManager() {
     async function load() {
       if (!selectedClubId) return;
 
-      const [playersData, squadData, aiData] = await Promise.all([
-        getPlayers(selectedClubId),
-        getSquad(selectedClubId),
-        getSquadRecommendations(),
-      ]);
+      try {
+        const [playersData, squadData, aiData] = await Promise.all([
+          getPlayers(selectedClubId),
+          getSquad(selectedClubId),
+          getSquadRecommendations(),
+        ]);
 
-      setPlayers(playersData);
-      setSquad(squadData);
-      setFormation(squadData.formation);
-      setAiSummary(aiData);
+        setPlayers(playersData);
+        setSquad(squadData);
+        setFormation(squadData.formation);
+        setAiSummary(aiData);
 
-      setSetPieces(
-        squadData.setPieces || {
-          penalty: null,
-          freeKick: null,
-          corner: null,
-          captain: null,
-        },
-      );
+        setSetPieces(
+          squadData.setPieces || {
+            penalty: null,
+            freeKick: null,
+            corner: null,
+            captain: null,
+          },
+        );
+      } catch (error) {
+        console.error('Failed to load squad manager data:', error);
+      }
     }
 
     load();
   }, [selectedClubId]);
+
+  const squadEligiblePlayers = useMemo(
+    () => players.filter((player) => player.externalPlayerId !== null),
+    [players],
+  );
 
   const selectedSlot = useMemo(() => {
     if (!squad || !selectedSlotId) return null;
@@ -88,7 +97,9 @@ export default function SquadManager() {
     if (!squad) return '';
 
     const weakSlots = squad.lineup.filter((slot) => {
-      const player = players.find((p) => p.id === slot.playerId);
+      const player = squadEligiblePlayers.find(
+        (p) => p.externalPlayerId === slot.playerId,
+      );
       return player && (player.form ?? 0) < 6.5;
     });
 
@@ -101,21 +112,21 @@ export default function SquadManager() {
     }
 
     return 'Состав выглядит сбалансированным. Его можно использовать как основной на ближайший матч.';
-  }, [squad, players]);
+  }, [squad, squadEligiblePlayers]);
 
   const filteredPlayers = useMemo(() => {
-    if (!selectedSlot || !players.length) return players;
+    if (!selectedSlot || !squadEligiblePlayers.length) return squadEligiblePlayers;
 
-    return [...players].sort((a, b) => {
+    return [...squadEligiblePlayers].sort((a, b) => {
       const aMatch = a.position === selectedSlot.role ? 1 : 0;
       const bMatch = b.position === selectedSlot.role ? 1 : 0;
 
       if (aMatch !== bMatch) return bMatch - aMatch;
       return (b.form ?? 0) - (a.form ?? 0);
     });
-  }, [players, selectedSlot]);
+  }, [squadEligiblePlayers, selectedSlot]);
 
-  function updateSetPiece(key: keyof SetPieces, playerId: number) {
+  function updateSetPiece(key: keyof SetPieces, playerId: number | null) {
     setSetPieces((prev) => ({
       ...prev,
       [key]: playerId,
@@ -125,7 +136,7 @@ export default function SquadManager() {
   function buildAutoLineup() {
     if (!squad) return;
 
-    const best = [...players]
+    const best = [...squadEligiblePlayers]
       .sort((a, b) => {
         const aScore = (a.form ?? 0) + (a.stats?.rating ?? 0);
         const bScore = (b.form ?? 0) + (b.stats?.rating ?? 0);
@@ -135,7 +146,7 @@ export default function SquadManager() {
 
     const updatedLineup = squad.lineup.map((slot, index) => ({
       ...slot,
-      playerId: best[index]?.id ?? slot.playerId,
+      playerId: best[index]?.externalPlayerId ?? slot.playerId,
       name: best[index]?.name ?? slot.name,
     }));
 
@@ -149,6 +160,7 @@ export default function SquadManager() {
     try {
       setLoadingAction(true);
       if (!selectedClubId) return;
+
       const updated = await updateFormation(newFormation, selectedClubId);
       setSquad(updated);
       setFormation(updated.formation);
@@ -168,12 +180,12 @@ export default function SquadManager() {
 
       setLoadingAction(true);
 
+      if (!selectedClubId) return;
+
       if (payload.sourceType === 'lineup') {
-        if (!selectedClubId) return;
         const updated = await swapLineupPlayers(slotId, payload.slotId, selectedClubId);
         setSquad(updated);
       } else {
-        if (!selectedClubId) return;
         const updated = await replacePlayer(
           slotId,
           payload.sourceType,
@@ -194,13 +206,12 @@ export default function SquadManager() {
   }
 
   async function assignSelectedBenchPlayer() {
-    if (!selectedSlotId) return;
+    if (!selectedSlotId || !selectedClubId) return;
 
     try {
       setLoadingAction(true);
 
-      if (selectedBenchId) {
-        if (!selectedClubId) return;
+      if (selectedBenchId !== null) {
         const updated = await replacePlayer(
           selectedSlotId,
           'bench',
@@ -208,8 +219,7 @@ export default function SquadManager() {
           selectedClubId,
         );
         setSquad(updated);
-      } else if (selectedReserveId) {
-        if (!selectedClubId) return;
+      } else if (selectedReserveId !== null) {
         const updated = await replacePlayer(
           selectedSlotId,
           'reserves',
@@ -353,14 +363,17 @@ export default function SquadManager() {
 
             <div className="mt-5 max-h-[260px] space-y-3 overflow-y-auto pr-1">
               {filteredPlayers.map((player) => {
-                const isSelected = selectedBenchId === player.id;
+                const candidateId = player.externalPlayerId;
+                if (candidateId === null) return null;
+
+                const isSelected = selectedBenchId === candidateId;
 
                 return (
                   <button
                     key={player.id}
                     type="button"
                     onClick={() => {
-                      setSelectedBenchId(player.id);
+                      setSelectedBenchId(candidateId);
                       setSelectedReserveId(null);
                     }}
                     className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
@@ -389,7 +402,7 @@ export default function SquadManager() {
             <div className="mt-4">
               <Button
                 onClick={assignSelectedBenchPlayer}
-                disabled={!selectedSlotId || (!selectedBenchId && !selectedReserveId)}
+                disabled={!selectedSlotId || (selectedBenchId === null && selectedReserveId === null)}
               >
                 Назначить выбранного игрока
               </Button>
@@ -397,7 +410,7 @@ export default function SquadManager() {
           </Card>
 
           <SetPiecesPanel
-            players={players}
+            players={squadEligiblePlayers}
             setPieces={setPieces}
             onChange={updateSetPiece}
           />

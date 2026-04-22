@@ -14,15 +14,17 @@ import SelectClub from './pages/SelectClub';
 import AboutClub from './pages/AboutClub';
 import ClubIntro from './pages/ClubIntro';
 import NotFound from './pages/NotFound';
+import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './auth/AdminRoute';
 
 export default function App() {
   return (
     <Routes>
-
-      {/* 🔥 ВЫБОР КЛУБА */}
+      {/* ВЫБОР КЛУБА */}
       <Route path="/select-club" element={<SelectClub />} />
 
-      {/* 🔥 INTRO (3D PRELOADER) */}
+      {/* INTRO */}
       <Route
         path="/club-intro"
         element={
@@ -32,7 +34,10 @@ export default function App() {
         }
       />
 
-      {/* 🔥 ОСНОВНОЕ ПРИЛОЖЕНИЕ */}
+      {/* AUTH */}
+      <Route path="/login" element={<Login />} />
+
+      {/* ОСНОВНОЕ ПРИЛОЖЕНИЕ */}
       <Route
         path="/"
         element={
@@ -132,7 +137,21 @@ export default function App() {
         }
       />
 
-      {/* ❌ 404 */}
+      {/* ADMIN */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <RequireSelectedClub>
+              <MainLayout>
+                <AdminDashboard />
+              </MainLayout>
+            </RequireSelectedClub>
+          </AdminRoute>
+        }
+      />
+
+      {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

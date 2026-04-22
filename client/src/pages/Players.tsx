@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 import SectionTitle from '../components/ui/SectionTitle';
 import PlayerCard from '../components/player/PlayerCard';
 import { getPlayers } from '../services/players';
-import { getPlayersForm } from '../services/analytics';
+import { getPlayersForm, type PlayerFormItem } from '../services/analytics';
 import type { Player } from '../types/player';
-import type { PlayerFormItem } from '../services/analytics';
 import { useSelectedClub } from '../context/SelectedClubContext';
 
 export default function Players() {
@@ -54,7 +53,13 @@ export default function Players() {
 
   const mergedPlayers = useMemo(() => {
     return players.map((player) => {
-      const formData = forms.find((item) => item.playerId === player.id);
+      if (!player.externalPlayerId) {
+        return player;
+      }
+
+      const formData = forms.find(
+        (item) => item.playerId === player.externalPlayerId,
+      );
 
       return {
         ...player,
@@ -64,33 +69,26 @@ export default function Players() {
   }, [players, forms]);
 
   if (playersLoading) {
-    return <p className="text-slate-300">Загрузка игроков...</p>;
+    return <div className="text-white">Загрузка игроков...</div>;
   }
 
   return (
     <div className="space-y-6">
       <SectionTitle
-        title="Игроки"
-        subtitle={`Список футболистов ${selectedClubId ?? ''}`}
+        title="Игроки клуба"
+        subtitle="Состав, форма и ключевая информация по каждому игроку"
       />
 
       {formsLoading ? (
-        <p className="text-sm text-slate-400">
+        <div className="text-sm text-gray-300">
           Аналитическая форма игроков еще загружается...
-        </p>
+        </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {mergedPlayers.map((player) => (
           <Link key={player.id} to={`/players/${player.id}`}>
-            <PlayerCard
-              name={player.name}
-              number={player.number}
-              position={player.position}
-              nationality={player.nationality}
-              form={player.form}
-              image={player.image}
-            />
+            <PlayerCard player={player} />
           </Link>
         ))}
       </div>

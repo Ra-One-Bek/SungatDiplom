@@ -2,7 +2,7 @@ import type { PlayerPosition } from './player';
 
 export interface SquadPlayerSlot {
   id: number;
-  playerId: number;
+  playerId: number | null;
   name: string;
   role: PlayerPosition;
   top: string;
@@ -11,9 +11,13 @@ export interface SquadPlayerSlot {
 
 export interface BenchPlayer {
   id: number;
-  playerId?: number;
+  playerId?: number | null;
   name: string;
   position: PlayerPosition;
+}
+
+export interface FormationOption {
+  name: string;
 }
 
 export interface SquadRecommendation {
@@ -34,6 +38,6 @@ export interface SquadData {
   lineup: SquadPlayerSlot[];
   bench: BenchPlayer[];
   reserves: BenchPlayer[];
-  recommendation: SquadRecommendation;
-  setPieces?: SetPieces;
+  recommendation?: SquadRecommendation;
+  setPieces: SetPieces;
 }

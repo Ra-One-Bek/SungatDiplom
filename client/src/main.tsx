@@ -4,13 +4,16 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { SelectedClubProvider } from './context/SelectedClubContext';
+import { AuthProvider } from './auth/AuthContext';
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <SelectedClubProvider>
-        <App />
-      </SelectedClubProvider>
+      <AuthProvider>
+        <SelectedClubProvider>
+          <App />
+        </SelectedClubProvider>
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

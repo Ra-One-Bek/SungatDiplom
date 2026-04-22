@@ -1,5 +1,13 @@
 export type PlayerSource = 'api' | 'admin' | 'hybrid';
 
+export type PlayerPosition =
+  | 'Goalkeeper'
+  | 'Defender'
+  | 'Midfielder'
+  | 'Attacker'
+  | 'Forward'
+  | 'Unknown';
+
 export type PlayerStats = {
   appearances: number;
   lineups: number;
