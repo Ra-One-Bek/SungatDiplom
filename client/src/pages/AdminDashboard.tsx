@@ -11,7 +11,7 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <SectionTitle
         title="Админ-панель"
-        subtitle="Управление данными, игроками и журналом изменений"
+        subtitle="Управление данными и административными разделами"
       />
 
       <Card>
@@ -29,35 +29,29 @@ export default function AdminDashboard() {
         </div>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Link to="/admin/players">
           <Card className="h-full transition hover:border-[var(--club-primary)]">
             <h3 className="text-lg font-black text-slate-900">
-              Игроки
+              Локальные игроки
             </h3>
             <p className="mt-2 text-sm text-slate-500">
-              Локальные игроки и изменения API-игроков
+              Создание, отключение и восстановление локальных игроков
             </p>
           </Card>
         </Link>
-
-        <Link to="/admin/logs">
-          <Card className="h-full transition hover:border-[var(--club-primary)]">
-            <h3 className="text-lg font-black text-slate-900">
-              Журнал действий
-            </h3>
-            <p className="mt-2 text-sm text-slate-500">
-              История действий администратора
-            </p>
-          </Card>
+        <Link to="/admin/overrides">
+            <Card>
+                <h3>Overrides</h3>
+            </Card>
         </Link>
 
         <Card>
           <h3 className="text-lg font-black text-slate-900">
-            Статус системы
+            Следующий модуль
           </h3>
           <p className="mt-2 text-sm text-slate-500">
-            Backend авторизация и RBAC уже подключены
+            После этого добавим overrides и журнал действий.
           </p>
         </Card>
       </div>

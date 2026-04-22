@@ -16,15 +16,15 @@ import ClubIntro from './pages/ClubIntro';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminPlayers from './pages/AdminPlayers';
 import AdminRoute from './auth/AdminRoute';
+import AdminOverrides from './pages/AdminOverrides';
 
 export default function App() {
   return (
     <Routes>
-      {/* ВЫБОР КЛУБА */}
       <Route path="/select-club" element={<SelectClub />} />
 
-      {/* INTRO */}
       <Route
         path="/club-intro"
         element={
@@ -34,10 +34,8 @@ export default function App() {
         }
       />
 
-      {/* AUTH */}
       <Route path="/login" element={<Login />} />
 
-      {/* ОСНОВНОЕ ПРИЛОЖЕНИЕ */}
       <Route
         path="/"
         element={
@@ -137,7 +135,6 @@ export default function App() {
         }
       />
 
-      {/* ADMIN */}
       <Route
         path="/admin"
         element={
@@ -151,7 +148,32 @@ export default function App() {
         }
       />
 
-      {/* 404 */}
+      <Route
+        path="/admin/players"
+        element={
+          <AdminRoute>
+            <RequireSelectedClub>
+              <MainLayout>
+                <AdminPlayers />
+              </MainLayout>
+            </RequireSelectedClub>
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/overrides"
+        element={
+          <AdminRoute>
+            <RequireSelectedClub>
+              <MainLayout>
+                <AdminOverrides />
+              </MainLayout>
+            </RequireSelectedClub>
+          </AdminRoute>
+        }
+      />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

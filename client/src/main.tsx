@@ -6,7 +6,7 @@ import './index.css';
 import { SelectedClubProvider } from './context/SelectedClubContext';
 import { AuthProvider } from './auth/AuthContext';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
