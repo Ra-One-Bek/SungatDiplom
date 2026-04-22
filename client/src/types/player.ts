@@ -1,49 +1,46 @@
-export type PlayerPosition =
-  | 'GK'
-  | 'CB'
-  | 'LB'
-  | 'RB'
-  | 'CDM'
-  | 'CM'
-  | 'CAM'
-  | 'LM'
-  | 'RM'
-  | 'LW'
-  | 'RW'
-  | 'ST';
+export type PlayerSource = 'api' | 'admin' | 'hybrid';
 
-export type InjuryStatus = 'fit' | 'doubtful' | 'injured' | 'suspended';
-
-export interface PlayerStats {
+export type PlayerStats = {
   appearances: number;
+  lineups: number;
   minutes: number;
+  rating: number;
   goals: number;
   assists: number;
   yellowCards: number;
   redCards: number;
-  rating: number;
-}
+};
 
-export interface PlayerAttributes {
-  pace: number;
-  shooting: number;
-  passing: number;
-  dribbling: number;
-  defending: number;
-  physical: number;
-}
+export type PlayerSourceMeta = {
+  source: PlayerSource;
+  externalPlayerId: number | null;
+  localPlayerId: number | null;
+  overridden: boolean;
+  hiddenByAdmin: boolean;
+};
 
-export interface Player {
-  id: number;
+export type Player = {
+  id: string;
+  externalPlayerId: number | null;
+  localPlayerId: number | null;
+
   name: string;
-  number: number;
+  firstname: string;
+  lastname: string;
+
   age: number;
+  number: number;
+  position: string;
   nationality: string;
+
+  photo: string;
   image: string;
-  position: PlayerPosition;
-  secondaryPositions: PlayerPosition[];
+
   form: number;
-  injuryStatus: InjuryStatus;
   stats: PlayerStats;
-  attributes: PlayerAttributes;
-}
+
+  source: PlayerSource;
+  sourceMeta: PlayerSourceMeta;
+
+  adminNote: string | null;
+};

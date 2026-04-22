@@ -1,21 +1,20 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { PlayersService } from './players.service';
-import { GetPlayersQueryDto } from './dto/get-players-query.dto';
 
 @Controller('players')
 export class PlayersController {
   constructor(private readonly playersService: PlayersService) {}
 
   @Get()
-  findAll(@Query() query: GetPlayersQueryDto) {
-    return this.playersService.findAll(query.clubId ?? 'astana');
+  findAll(@Query('clubId') clubId?: 'astana' | 'kairat' | 'kaisar') {
+    return this.playersService.findAll(clubId ?? 'astana');
   }
 
   @Get(':id')
   findOne(
-    @Param('id', ParseIntPipe) id: number,
-    @Query() query: GetPlayersQueryDto,
+    @Param('id') id: string,
+    @Query('clubId') clubId?: 'astana' | 'kairat' | 'kaisar',
   ) {
-    return this.playersService.findOne(id, query.clubId ?? 'astana');
+    return this.playersService.findOne(id, clubId ?? 'astana');
   }
 }

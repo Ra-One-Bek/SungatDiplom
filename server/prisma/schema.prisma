@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  USER
+}
+
+enum AdminActionType {
+  CREATE_LOCAL_PLAYER
+  UPDATE_LOCAL_PLAYER
+  DEACTIVATE_LOCAL_PLAYER
+  RESTORE_LOCAL_PLAYER
+  UPSERT_PLAYER_OVERRIDE
+  UPDATE_USER_ROLE
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  email           String           @unique
+  passwordHash    String
+  name            String
+  role            UserRole         @default(USER)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  adminPlayers    AdminPlayer[]
+  playerOverrides PlayerOverride[]
+  actionLogs      AdminActionLog[]
+}
+
+model AdminPlayer {
+  id          Int      @id @default(autoincrement())
+  clubId      String
+  name        String
+  firstname   String?
+  lastname    String?
+  age         Int?
+  number      Int?
+  position    String
+  nationality String?
+  photo       String?
+  isActive    Boolean  @default(true)
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+}
+
+model PlayerOverride {
+  id                Int      @id @default(autoincrement())
+  externalPlayerId  Int
+  clubId            String
+  customName        String?
+  customNumber      Int?
+  customPosition    String?
+  customNationality String?
+  customPhoto       String?
+  note              String?
+  isHidden          Boolean  @default(false)
+  updatedById       Int
+  updatedAt         DateTime @updatedAt
+
+  updatedBy User @relation(fields: [updatedById], references: [id], onDelete: Cascade)
+
+  @@unique([externalPlayerId, clubId])
+  @@index([clubId])
+}
+
+model AdminActionLog {
+  id          Int             @id @default(autoincrement())
+  adminUserId Int
+  actionType  AdminActionType
+  entityType  String
+  entityId    String
+  message     String?
+  payloadJson String?
+  createdAt   DateTime        @default(now())
+
+  adminUser User @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+  @@index([actionType])
+  @@index([entityType, entityId])
+}

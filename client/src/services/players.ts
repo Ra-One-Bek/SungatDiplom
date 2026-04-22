@@ -1,15 +1,10 @@
-import type { Player } from '../types/player';
 import { apiGet } from './api';
+import type { Player } from '../types/player';
 
-export type ClubId = 'astana' | 'kairat' | 'kaisar';
-
-export async function getPlayers(clubId: ClubId): Promise<Player[]> {
-  return apiGet(`/players?clubId=${clubId}`);
+export function getPlayers(clubId: string) {
+  return apiGet<Player[]>(`/players?clubId=${clubId}`);
 }
 
-export async function getPlayerById(
-  id: number,
-  clubId: ClubId,
-): Promise<Player> {
-  return apiGet(`/players/${id}?clubId=${clubId}`);
+export function getPlayerById(playerId: string, clubId: string) {
+  return apiGet<Player>(`/players/${playerId}?clubId=${clubId}`);
 }
