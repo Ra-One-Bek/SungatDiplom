@@ -11,7 +11,7 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <SectionTitle
         title="Админ-панель"
-        subtitle="Управление данными и административными разделами"
+        subtitle="Управление игроками, overrides и журналом действий"
       />
 
       <Card>
@@ -29,31 +29,39 @@ export default function AdminDashboard() {
         </div>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <Link to="/admin/players">
           <Card className="h-full transition hover:border-[var(--club-primary)]">
             <h3 className="text-lg font-black text-slate-900">
-              Локальные игроки
+              Игроки
             </h3>
             <p className="mt-2 text-sm text-slate-500">
-              Создание, отключение и восстановление локальных игроков
+              Локальные игроки и управление активностью
             </p>
           </Card>
         </Link>
+
         <Link to="/admin/overrides">
-            <Card>
-                <h3>Overrides</h3>
-            </Card>
+          <Card className="h-full transition hover:border-[var(--club-primary)]">
+            <h3 className="text-lg font-black text-slate-900">
+              Overrides
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Изменение и скрытие API-игроков
+            </p>
+          </Card>
         </Link>
 
-        <Card>
-          <h3 className="text-lg font-black text-slate-900">
-            Следующий модуль
-          </h3>
-          <p className="mt-2 text-sm text-slate-500">
-            После этого добавим overrides и журнал действий.
-          </p>
-        </Card>
+        <Link to="/admin/logs">
+          <Card className="h-full transition hover:border-[var(--club-primary)]">
+            <h3 className="text-lg font-black text-slate-900">
+              Журнал действий
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              История действий администратора
+            </p>
+          </Card>
+        </Link>
       </div>
     </div>
   );

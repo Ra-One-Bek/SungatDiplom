@@ -17,8 +17,9 @@ import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPlayers from './pages/AdminPlayers';
-import AdminRoute from './auth/AdminRoute';
 import AdminOverrides from './pages/AdminOverrides';
+import AdminLogs from './pages/AdminLogs';
+import AdminRoute from './auth/AdminRoute';
 
 export default function App() {
   return (
@@ -168,6 +169,19 @@ export default function App() {
             <RequireSelectedClub>
               <MainLayout>
                 <AdminOverrides />
+              </MainLayout>
+            </RequireSelectedClub>
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/logs"
+        element={
+          <AdminRoute>
+            <RequireSelectedClub>
+              <MainLayout>
+                <AdminLogs />
               </MainLayout>
             </RequireSelectedClub>
           </AdminRoute>
